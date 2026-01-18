@@ -1,10 +1,11 @@
 library("tidyverse")
+library("dplyr")
 
 enrollment <- read_csv("IPEDS Enrollment Data 2019-2024 (1).csv")
 completers <- read_csv("IPEDS Completers Data 2019-2024.csv")
 
-view(enrollment)
-view(completers)
+# view(enrollment)
+# view(completers)
 
 # Pivoting races in enrollment
 glimpse(enrollment)
@@ -26,7 +27,7 @@ enrollment_long <- enrollment %>%
     values_to = "Enrolled"
   )
 
-view(enrollment_long)
+# view(enrollment_long)
 
 # Pivoting races in Completers
 glimpse(completers)
@@ -45,18 +46,69 @@ completers_long <- completers %>%
       "U.S. Nonresident total"
     ),
     names_to = "Race",
-    values_to = "Enrolled"
+    values_to = "Completed"
   )
 
-view(completers_long)
+# view(completers_long)
 
 # Removing the word "total" in each race value
 enrollment_long <- enrollment_long %>%
   mutate(Race = str_remove(Race, " total"))
 
-view(enrollment_long)
+# view(enrollment_long)
 
 completers_long <- completers_long %>%
   mutate(Race = str_remove(Race, " total"))
 
+# view(completers_long)
+
+# Completion rates visualisation
+# ggplot(completers_long, aes("Year", "Grand total", color = Race)) +
+#   geom_line(size = 1.2) +
+#   geom_point() +
+#   labs(
+#     title = "Completion Rates by Race Over Time",
+#     y = "Completion Rate",
+#     x = "Year"
+#   ) +
+#   theme_minimal()
+
+# Table joining
+# demographic_gap <- enrollment_long %>%
+#   left_join(
+#     completers_long,
+#     by = c("Year", "UNITID", "Race", "Institution (entity) name", "State abbreviation"),
+#     suffix = c("_enroll", "_complete")
+#   )
+# 
+# view(demographic_gap)
+
+# enrollment_long %>%
+#   group_by(Year, UNITID, Race, `Institution (entity) name`, `State abbreviation`) %>%
+#   filter(n() > 1) %>%
+#     glimpse()
+
+# Duplicate & Error consolidation in enrollment
+enrollment_long <- enrollment_long %>%
+  group_by(Year, UNITID, Race, `Institution (entity) name`, `State abbreviation`) %>%
+  summarise(Enrolled = sum(Enrolled, na.rm = TRUE), .groups = "drop")
+
+view(enrollment_long)
+
+# Duplicate & Error consolidation in  completers
+completers_long <- completers_long %>%
+  group_by(Year, UNITID, Race, `Institution (entity) name`, `State abbreviation`) %>%
+  summarise(Completed = sum(Completed, na.rm = TRUE), .groups = "drop")
+
 view(completers_long)
+
+# Table joining
+demographic_gap <- enrollment_long %>%
+  left_join(
+    completers_long,
+    by = c("Year", "UNITID", "Race", "Institution (entity) name", "State abbreviation")
+  )
+
+view(demographic_gap)
+
+  
