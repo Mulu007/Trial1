@@ -27,3 +27,25 @@ enrollment_long <- enrollment %>%
   )
 
 view(enrollment_long)
+
+# Pivoting races in Completers
+glimpse(completers)
+
+completers_long <- completers %>%
+  pivot_longer(
+    cols = c(
+      "American Indian or Alaska Native total",
+      "Asian total",
+      "Black or African American total",
+      "Hispanic or Latino total",
+      "Native Hawaiian or Other Pacific Islander total",
+      "White total",
+      "Two or more races total",
+      "Race/ethnicity unknown total",
+      "U.S. Nonresident total"
+    ),
+    names_to = "Race",
+    values_to = "Enrolled"
+  )
+
+view(completers_long)
