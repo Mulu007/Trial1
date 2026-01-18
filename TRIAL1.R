@@ -49,3 +49,14 @@ completers_long <- completers %>%
   )
 
 view(completers_long)
+
+# Removing the word "total" in each race value
+enrollment_long <- enrollment_long %>%
+  mutate(Race = str_remove(Race, " total"))
+
+view(enrollment_long)
+
+completers_long <- completers_long %>%
+  mutate(Race = str_remove(Race, " total"))
+
+view(completers_long)
