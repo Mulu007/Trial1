@@ -1,5 +1,8 @@
 library("tidyverse")
 library("dplyr")
+library("ggplot2")
+install.packages("scales")
+library("scales")
 
 enrollment <- read_csv("IPEDS Enrollment Data 2019-2024 (1).csv")
 completers <- read_csv("IPEDS Completers Data 2019-2024.csv")
@@ -111,4 +114,35 @@ demographic_gap <- enrollment_long %>%
 
 view(demographic_gap)
 
+# Demographic difference (gap) calculation
+demographic_gap <- demographic_gap %>%
+  mutate(
+    Gap = Enrolled - Completed,
+    CompletionRate = Completed / Enrolled * 100
+  )
+
+view(demographic_gap)
+
+demographic_gap %>%
+  group_by(Race) %>%
+  summarise(TotalGap = sum(Gap, na.rm = TRUE)) %>%
+  ggplot(aes(x = reorder(Race, TotalGap), y = TotalGap, fill = Race)) +
+  geom_col() +
+  scale_y_continuous(
+    labels = scales::label_number(scale = 1e-6, suffix = "M")
+  ) +
+  labs(
+    title = "Demographic Differences Between Enrollment and Degree Completion",
+    subtitle = "Aggregate Difference between enrolled and completed students across institutions and years",
+    caption = "Source: IPEDS Enrollment Data, 2019-2024",
+    y = "Count of Students",
+    x = "Race / Ethnicity"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray50"),
+    plot.caption  = element_text(hjust = 1),
+    axis.text.x   = element_blank()
+  )
   
