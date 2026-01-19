@@ -7,8 +7,8 @@ library("scales")
 enrollment <- read_csv("IPEDS Enrollment Data 2019-2024 (1).csv")
 completers <- read_csv("IPEDS Completers Data 2019-2024.csv")
 
-# view(enrollment)
-# view(completers)
+view(enrollment)
+view(completers)
 
 # Pivoting races in enrollment
 glimpse(enrollment)
@@ -30,7 +30,7 @@ enrollment_long <- enrollment %>%
     values_to = "Enrolled"
   )
 
-# view(enrollment_long)
+view(enrollment_long)
 
 # Pivoting races in Completers
 glimpse(completers)
@@ -52,18 +52,18 @@ completers_long <- completers %>%
     values_to = "Completed"
   )
 
-# view(completers_long)
+view(completers_long)
 
 # Removing the word "total" in each race value
 enrollment_long <- enrollment_long %>%
   mutate(Race = str_remove(Race, " total"))
 
-# view(enrollment_long)
+view(enrollment_long)
 
 completers_long <- completers_long %>%
   mutate(Race = str_remove(Race, " total"))
 
-# view(completers_long)
+view(completers_long)
 
 # Completion rates visualisation
 # ggplot(completers_long, aes("Year", "Grand total", color = Race)) +
@@ -145,4 +145,15 @@ demographic_gap %>%
     plot.caption  = element_text(hjust = 1),
     axis.text.x   = element_blank()
   )
-  
+
+# Descriptive statistics
+gap_summary <- demographic_gap %>%
+  group_by(Race) %>%
+  summarise(
+    mean = mean(Gap, na.rm = TRUE),
+    median = median(Gap, na.rm = TRUE),
+    sd = sd(Gap, na.rm = TRUE),
+    iqr = IQR(Gap, na.rm = TRUE)
+  )
+
+summary(demographic_gap)
