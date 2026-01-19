@@ -123,6 +123,7 @@ demographic_gap <- demographic_gap %>%
 
 view(demographic_gap)
 
+# First plot
 demographic_gap %>%
   group_by(Race) %>%
   summarise(TotalGap = sum(Gap, na.rm = TRUE)) %>%
@@ -133,7 +134,7 @@ demographic_gap %>%
   ) +
   labs(
     title = "Demographic Differences Between Enrollment and Degree Completion",
-    subtitle = "Aggregate Difference between enrolled and completed students across institutions and years",
+    subtitle = "Population-weighted aggregate difference between enrolled and completed students across U.S. institutions (2019–2024)",
     caption = "Source: IPEDS Enrollment Data, 2019-2024",
     y = "Count of Students",
     x = "Race / Ethnicity"
@@ -148,12 +149,62 @@ demographic_gap %>%
 
 # Descriptive statistics
 gap_summary <- demographic_gap %>%
+  #exclusion of anomalies
+  filter(gap_rate >=0 & gap_rate <= 1) %>%
   group_by(Race) %>%
   summarise(
-    mean = mean(Gap, na.rm = TRUE),
-    median = median(Gap, na.rm = TRUE),
-    sd = sd(Gap, na.rm = TRUE),
-    iqr = IQR(Gap, na.rm = TRUE)
-  )
+    mean = mean(gap_rate, na.rm = TRUE),
+    median = median(gap_rate, na.rm = TRUE),
+    sd = sd(gap_rate, na.rm = TRUE),
+    # iqr = IQR(Gap, na.rm = TRUE)
+    Count = n()
+  ) 
+  #   %>%
+  # arrange(desc(median))
+
+view(gap_summary)
 
 summary(demographic_gap)
+
+# Are some demographic groups disproportionately affected, or are the gaps just large because the group is large?
+
+demographic_gap <- demographic_gap %>%
+  mutate(
+    completion_rate = Completed / Enrolled,
+    gap_rate = Gap / Enrolled 
+  ) %>%
+  # removes Inf, -Inf and NaN
+  filter(is.finite(gap_rate))
+
+view(demographic_gap)
+summary(demographic_gap$gap_rate)
+
+# demographic_gap %>%
+#   ggplot(aes(gap_rate)) +
+#   geom_histogram(bins = 1000) +
+#   labs(title = "Distribution of Gap Rates")
+
+# ggplot(demographic_gap, aes(x = Race, y = gap_rate)) +
+#   geom_boxplot(outlier.shape = NA) +
+# #  geom_jitter(width = 0.2, alpha = 0.3) +
+#   coord_cartesian(ylim = c(-0.1, 1.1)) +
+#   coord_flip()
+
+# Explains and shows anamolies in my data
+view(subset(demographic_gap, gap_rate < 0))
+
+# Box-plot code
+clean_gap_data <- demographic_gap %>%
+  filter(gap_rate >= 0 & gap_rate <= 1)
+
+ggplot(clean_gap_data, aes(x = Race, y = gap_rate)) +
+  geom_boxplot(outlier.shape = NA, fill = "red" , alpha = 0.7) +
+  # coord_cartesian(ylim = c(0, 1)) +
+  # geom_point() +
+  coord_flip() +
+  theme_minimal() +
+  labs(
+    title = "Gap Rate by Race",
+    subtitle = "Excluding outliers where Completion > Enrollment",
+    y = "Gap Rate"
+  )
