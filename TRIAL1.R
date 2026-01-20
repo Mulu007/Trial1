@@ -208,3 +208,85 @@ ggplot(clean_gap_data, aes(x = Race, y = gap_rate)) +
     subtitle = "Excluding outliers where Completion > Enrollment",
     y = "Gap Rate"
   )
+
+ggplot(demographic_gap, aes(x = Enrolled, y = Completed, color = Race)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +
+  scale_x_log10(trans = "pseudo_log",labels = comma) +
+  scale_y_log10(trans = "pseudo_log",labels = comma) +
+  facet_wrap(~Race) + # Separates by race to see trends clearly
+  theme_minimal() +
+  labs(
+    title = "Enrolled vs. Completed Counts (Log Scale)",
+    subtitle = "The red dashed line represents a 100% completion rate.",
+    x = "Total Enrolled (Log Scale)",
+    y = "Total Completed (Log Scale)"
+  )
+
+# 1. Summarize the data by Race to get a single performance metric per group
+race_summary <- demographic_gap %>%
+  filter(Enrolled > 0 & Enrolled >= Completed) %>% # Filter out noise
+  group_by(Race) %>%
+  summarise(
+    Total_Enrolled = sum(Enrolled, na.rm = TRUE),
+    Total_Completed = sum(Completed, na.rm = TRUE),
+    # Calculate the weighted Success Rate (opposite of Gap Rate for easier reading)
+    Success_Rate = Total_Completed / Total_Enrolled
+  ) %>%
+  arrange(desc(Success_Rate))
+
+# 2. Extract the Top 3 and Bottom 3 groups
+extreme_groups <- bind_rows(
+  head(race_summary, 3), # Top 3 highest completion
+  tail(race_summary, 3)  # Bottom 3 lowest completion (highest gaps)
+) %>%
+  mutate(Category = ifelse(Success_Rate > median(Success_Rate), "Highest Success", "Highest Gap"))
+
+# 3. Create a clean, simple Bar Chart
+ggplot(extreme_groups, aes(x = reorder(Race, Success_Rate), y = Success_Rate, fill = Category)) +
+  geom_col(width = 0.7) +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal() +
+  scale_fill_manual(values = c("Highest Success" = "#2ecc71", "Highest Gap" = "#e74c3c")) +
+  labs(
+    title = "The Demographic Extremes: Completion Success vs. Gaps",
+    subtitle = "Comparing the 3 highest and 3 lowest performing racial demographics",
+    x = "",
+    y = "Overall Completion Rate (%)"
+  )
+
+# Top 10 states by volume
+top_states <- demographic_gap %>%
+  group_by(`State abbreviation`) %>%
+  summarise(total = sum(Enrolled, na.rm = TRUE)) %>%
+  slice_max(total, n = 10) %>%
+  pull(`State abbreviation`)
+
+# view(demographic_gap %>%
+#      group_by(`State abbreviation`) %>%
+#      summarise(total = sum(Enrolled, na.rm = TRUE)))
+
+# Aggregate data for the heat map
+heatmap_data <- demographic_gap %>%
+  # Removal of anomalies
+  filter(`State abbreviation` %in% top_states & Enrolled > 0 & Enrolled >= Completed) %>%
+  group_by(Race, `State abbreviation`) %>%
+  summarise(Avg_Success_Rate = sum(Completed) / sum(Enrolled)) %>%
+  ungroup()
+
+view(heatmap_data)
+
+# Heat Map Plot
+ggplot(heatmap_data, aes(x = `State abbreviation`, y = Race, fill = Avg_Success_Rate)) +
+  geom_tile(color = "white") +
+  scale_fill_distiller(palette = "RdYlGn", direction = 1, labels = scales::percent) +
+  theme_minimal() +
+  labs(
+    title = "The 'Equity' Heat Map: Success Rates by Demographic & State",
+   # subtitle = "Red cells indicate the largest gaps; Green cells indicate higher success.",
+    x = "State",
+    y = "",
+    fill = "Success Rate"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
